@@ -5,12 +5,12 @@ Spark implementations of two data sampling methods (random oversampling and rand
 ## Example (Undersampling):
 
 Parameters 
-	<path-to-header>
-	<path-to-train>
-	<number-of-partition>
-	<name-of-majority-class>
-	<name-of-minority-class>
-	<pathOutput>
+>	"path-to-header"
+>	"path-to-train"
+>	"number-of-partition"
+>	"name-of-majority-class"
+>	"name-of-minority-class"
+>	"pathOutput"
 
 
 spark-submit --class org.apache.spark.mllib.sampling.runRUS Imb-sampling-1.0.jar hdfs://hadoop-master/datasets/data.header hdfs://hadoop-master/datasets/train.data 250 0 1 hdfs://hadoop-master/datasets/train-under.data
@@ -19,14 +19,14 @@ spark-submit --class org.apache.spark.mllib.sampling.runRUS Imb-sampling-1.0.jar
 
 
 Parameters 
-	<path-to-header>
-	<path-to-train>
-	<number-of-partition>
-	<number-of-repartition>
-	<name-of-majority-class>
-	<name-of-minority-class>
-	<oversampling-rate>
-	<pathOutput>
+>	"path-to-header"
+>	"path-to-train"
+>	"number-of-partition"
+>	"number-of-repartition"
+>	"name-of-majority-class"
+>	"name-of-minority-class"
+>	"oversampling-rate"
+>	"pathOutput"
 
 
 spark-submit --class org.apache.spark.mllib.sampling.runROS Imb-sampling-1.0.jar hdfs://hadoop-master/datasets/data.header hdfs://hadoop-master/datasets/train.data 100 250 0 1 2.0 hdfs://hadoop-master/datasets/train-under.data
@@ -34,4 +34,5 @@ spark-submit --class org.apache.spark.mllib.sampling.runROS Imb-sampling-1.0.jar
 ## Credits
 
 Developed by: Sara del Río García (srio@decsai.ugr.es)
-Maintained by: Sergio Ramírez (sramirez@decsai.ugr.es)
+
+Maintained by: Sergio Ramírez (sramirez@decsai.ugr.es) / @sramirez
