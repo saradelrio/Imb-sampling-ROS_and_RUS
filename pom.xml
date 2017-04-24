@@ -4,8 +4,8 @@ http://maven.apache.org/maven-v4_0_0.xsd">
    <modelVersion>4.0.0</modelVersion>
    <name>${project.artifactId}</name>
    <groupId>SRIO</groupId>
-   <artifactId>Imb-sampling-ROS_and_RUS</artifactId>
-   <version>1.0</version>
+   <artifactId>Imb-sampling</artifactId>
+   <version>1.1</version>
    <properties>
       <maven.compiler.source>1.6</maven.compiler.source>
       <maven.compiler.target>1.6</maven.compiler.target>

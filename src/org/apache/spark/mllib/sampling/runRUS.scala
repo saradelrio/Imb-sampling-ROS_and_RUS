@@ -1,4 +1,4 @@
-package org.apache.spark.mllib.sampling_ROS_and_RUS
+package org.apache.spark.mllib.sampling
 
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
@@ -71,8 +71,8 @@ object runRUS {
     var undersample: RDD[String]= null
     var fraction = 0.0 
     
-    val train_positive = trainRaw.filter(line => line.contains(minclass))
-    val train_negative = trainRaw.filter(line => line.contains(majclass))
+    val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
+    val train_negative = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(majclass) == 0)
     
     val num_neg = train_negative.count()
     val num_pos = train_positive.count()
