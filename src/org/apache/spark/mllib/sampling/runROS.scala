@@ -36,8 +36,8 @@ object runROS {
     val numPartition = arg(2).toInt
     val numRePartition = arg(3).toInt
     val majclass = arg(4)
-    val minclass = arg(5)  
-    val overRate = arg(6).toInt
+    val minclass = arg(5)
+    val overRate = arg(6).toDouble
     val pathOutput = arg(7)
 
     //Basic setup
@@ -69,48 +69,45 @@ object runROS {
     inparam += "=> pathToOuput \"" + pathOutput + "\"" + "\n"
 
     logger.info("\nReading training file: " + pathTrain + " in " + numPartition + " partitions");
-    
+
     val timeStart = System.nanoTime
-    
-    val trainRaw = sc.textFile(pathTrain: String, numPartition).cache    
-    
+
+    val trainRaw = sc.textFile(pathTrain: String, numPartition).cache
+
     var oversample: RDD[String]= null
-    var fraction = 0.0 
-    
+    var fraction = 0.0
+
     val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
     val train_negative = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(majclass) == 0)
-    
+
     val num_neg = train_negative.count()
     val num_pos = train_positive.count()
-      
+
+    println("OverRate: " + overRate)
+
     if (num_pos > num_neg){
-      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
-      println("fraction:" + fraction)
-      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
-      
+      oversample = train_positive.union(train_negative.sample(true, overRate, 1234))
+
     }else{
-      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
-      println("fraction:" + fraction)
-      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
+      oversample = train_negative.union(train_positive.sample(true, overRate, 1234))
     }
-    
+
     oversample.repartition(numRePartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
-    
+
     val timeEnd = System.nanoTime
-    
+
     //OUTPUT
     var writerResult = new String
     writerResult += "Oversampling Time:\t\t" + (timeEnd - timeStart) / 1e9 + " seconds" + "\n"
-   
-    logger.info(writerResult)   
+
+    logger.info(writerResult)
 
     println("Number of negative instances:" + num_neg)
-    
+
     println("Number of positive instances:" + num_pos)
-    
+
     println("Number of final instances:" + oversample.count())
-  
+
   }
 
 }
-
