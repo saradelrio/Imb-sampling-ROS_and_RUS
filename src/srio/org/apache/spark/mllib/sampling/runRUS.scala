@@ -1,4 +1,4 @@
-package org.apache.spark.mllib.sampling
+package srio.org.apache.spark.mllib.sampling
 
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
@@ -20,13 +20,17 @@ import scala.util.Random
 /**
  * @author SARA
  */
-object runROS {
+object runRUS {
+  
+  var num_pos: Long = 0;
+  var num_neg: Long = 0;
+  
   def main(arg: Array[String]) {
 
     var logger = Logger.getLogger(this.getClass())
-    if (arg.length < 8) {
+    if (arg.length < 6) {
       logger.error("=> wrong parameters number")
-      System.err.println("Parameters \n\t<path-to-header>\n\t<path-to-train>\n\t<number-of-partition>\n\t<number-of-repartition>\n\t<name-of-majority-class>\n\t<name-of-minority-class>\n\t<oversampling-rate>\n\t<pathOutput>")
+      System.err.println("Parameters \n\t<path-to-header>\n\t<path-to-train>\n\t<number-of-partition>\n\t<name-of-majority-class>\n\t<name-of-minority-class>\n\t<pathOutput>")
       System.exit(1)
     }
 
@@ -34,14 +38,12 @@ object runROS {
     val pathHeader = arg(0)
     val pathTrain = arg(1)
     val numPartition = arg(2).toInt
-    val numRePartition = arg(3).toInt
-    val majclass = arg(4)
-    val minclass = arg(5)  
-    val overRate = arg(6).toInt
-    val pathOutput = arg(7)
+    val majclass = arg(3)
+    val minclass = arg(4)  
+    val pathOutput = arg(5)
 
     //Basic setup
-    val jobName = "ROS-Spark" + "-" + numPartition + "Parts-" + overRate + "OverRate"
+    val jobName = "RUS-Spark" + "-" + numPartition
 
     //Spark Configuration
     val conf = new SparkConf().setAppName(jobName)
@@ -51,10 +53,8 @@ object runROS {
     logger.info("=> pathToHeader \"" + pathHeader + "\"")
     logger.info("=> pathToTrain \"" + pathTrain + "\"")
     logger.info("=> NumberPartition \"" + numPartition + "\"")
-    logger.info("=> NumberRePartition \"" + numPartition + "\"")
     logger.info("=> NameMajorityClass \"" + majclass + "\"")
     logger.info("=> NameMinorityClass \"" + minclass + "\"")
-    logger.info("=> OversamplingRate \"" + overRate + "\"")
     logger.info("=> pathToOuput \"" + pathOutput + "\"")
 
     var inparam = new String
@@ -62,10 +62,8 @@ object runROS {
     inparam += "=> pathToHeader \"" + pathHeader + "\"" + "\n"
     inparam += "=> pathToTrain \"" + pathTrain + "\"" + "\n"
     inparam += "=> NumberPartition \"" + numPartition + "\"" + "\n"
-    inparam += "=> NumberRePartition \"" + numPartition + "\"" + "\n"
     inparam += "=> NameMajorityClass \"" + majclass + "\"" + "\n"
     inparam += "=> NameMinorityClass \"" + minclass + "\"" + "\n"
-    inparam += "=> OversamplingRate \"" + overRate + "\"" + "\n"
     inparam += "=> pathToOuput \"" + pathOutput + "\"" + "\n"
 
     logger.info("\nReading training file: " + pathTrain + " in " + numPartition + " partitions");
@@ -74,7 +72,29 @@ object runROS {
     
     val trainRaw = sc.textFile(pathTrain: String, numPartition).cache    
     
-    var oversample: RDD[String]= null
+    val undersample = runRUS(trainRaw, minclass, majclass)
+    
+    undersample.repartition(numPartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
+    
+    val timeEnd = System.nanoTime
+    
+    //OUTPUT
+    var writerResult = new String
+    writerResult += "Undersampling Time:\t\t" + (timeEnd - timeStart) / 1e9 + " seconds" + "\n"
+   
+    logger.info(writerResult)    
+
+    println("Number of negative instances:" + num_neg)
+    
+    println("Number of positive instances:" + num_pos)
+    
+    println("Number of final instances:" + undersample.count())
+  
+  }
+  
+  def apply(trainRaw: RDD[String], minclass: String, majclass: String) = {
+    
+    var undersample: RDD[String]= null
     var fraction = 0.0 
     
     val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
@@ -84,32 +104,17 @@ object runROS {
     val num_pos = train_positive.count()
       
     if (num_pos > num_neg){
-      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
+      fraction = num_neg.toFloat/num_pos
       println("fraction:" + fraction)
-      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
+      undersample = train_negative.union(train_positive.sample(false, fraction, 1234))
       
     }else{
-      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
+      fraction = num_pos.toFloat/num_neg
       println("fraction:" + fraction)
-      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
+      undersample = train_positive.union(train_negative.sample(false, fraction, 1234))
     }
     
-    oversample.repartition(numRePartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
-    
-    val timeEnd = System.nanoTime
-    
-    //OUTPUT
-    var writerResult = new String
-    writerResult += "Oversampling Time:\t\t" + (timeEnd - timeStart) / 1e9 + " seconds" + "\n"
-   
-    logger.info(writerResult)   
-
-    println("Number of negative instances:" + num_neg)
-    
-    println("Number of positive instances:" + num_pos)
-    
-    println("Number of final instances:" + oversample.count())
-  
+    undersample
   }
 
 }
