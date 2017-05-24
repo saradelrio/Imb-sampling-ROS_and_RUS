@@ -122,6 +122,31 @@ object runROS {
     
     oversample
   }
+  
+  def apply(trainRaw: RDD[LabeledPoint], minclass: Double, majclass: Double, overRate: Int): RDD[LabeledPoint]= {
+    var oversample: RDD[LabeledPoint]= null
+    var fraction = 0.0 
+    
+    val train_positive = trainRaw.filter(line => line.label ==  minclass)
+    val train_negative = trainRaw.filter(line => line.label ==  majclass)
+    
+    num_neg = train_negative.count()
+    num_pos = train_positive.count()
+      
+    if (num_pos > num_neg){
+      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
+      println("fraction:" + fraction)
+      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
+      
+    }else{
+      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
+      println("fraction:" + fraction)
+      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
+    }
+    
+    oversample
+   } 
+
 
 }
 
