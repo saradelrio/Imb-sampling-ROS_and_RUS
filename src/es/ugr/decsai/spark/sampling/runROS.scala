@@ -1,22 +1,11 @@
-package srio.org.apache.spark.mllib.sampling
+package es.ugr.decsai.spark.sampling
 
-import org.apache.log4j.Logger
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import org.apache.spark.broadcast.Broadcast
-import scala.collection.mutable.ListBuffer
-import java.io.IOException
-import java.io.File
-import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.linalg.Vectors
-import java.util.ArrayList
-import com.typesafe.config.ConfigFactory
-import java.io.PrintWriter
-import org.apache.spark.rdd.MapPartitionsRDD
-import org.apache.spark.rdd.RDD
-import scala.util.Random
 import org.apache.commons.lang.NotImplementedException
+import org.apache.log4j.Logger
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.rdd.RDD
 
 /**
  * @author SARA
