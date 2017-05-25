@@ -116,6 +116,32 @@ object runRUS {
     
     undersample
   }
+  
+  def apply(trainRaw: RDD[LabeledPoint], minclass: Double, majclass: Double): RDD[LabeledPoint]= {
+    
+    var undersample: RDD[LabeledPoint]= null
+    var fraction = 0.0 
+    
+    val train_positive = trainRaw.filter(line => line.label ==  minclass)
+    val train_negative = trainRaw.filter(line => line.label ==  majclass)
+    
+    val num_neg = train_negative.count()
+    val num_pos = train_positive.count()
+      
+    if (num_pos > num_neg){
+      fraction = num_neg.toFloat/num_pos
+      println("fraction:" + fraction)
+      undersample = train_negative.union(train_positive.sample(false, fraction, 1234))
+      
+    }else{
+      fraction = num_pos.toFloat/num_neg
+      println("fraction:" + fraction)
+      undersample = train_positive.union(train_negative.sample(false, fraction, 1234))
+    }
+    
+    undersample
+  }
+
 
 }
 
