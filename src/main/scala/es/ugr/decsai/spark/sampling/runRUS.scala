@@ -7,6 +7,10 @@ import org.apache.spark.SparkConf
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
 import es.ugr.decsai.spark.sampling.common.CommonUtils
+import org.apache.commons.lang.NotImplementedException
+import es.ugr.decsai.spark.sampling.common.RDDPair
+import es.ugr.decsai.spark.sampling.common.ExtendedRDDPair
+import es.ugr.decsai.spark.sampling.common.RDDWithClasses
 
 /**
  * @author SARA
@@ -83,21 +87,25 @@ object runRUS {
   
   }
   
-  
-  def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String): RDD[T] = {
-    
-    val train_positive = sourceDataset.filter(CommonUtils.checkIfClass(_,minclass))
-    val train_negative = sourceDataset.filter(CommonUtils.checkIfClass(_,majclass))
-    
-    var num_pos = train_positive.count()
-    var num_neg = train_negative.count()
-    
-    num_pos > num_neg match {
-      case true => train_negative.union(train_positive.sample(false, num_neg.toFloat/num_pos))
-      case false => train_positive.union(train_negative.sample(false, num_pos.toFloat/num_neg))
-    }  
-    
+  private def isPosCountGreaterThanNegCount[T]: RDDPair[T] => ExtendedRDDPair[T] = _ match {
+    case RDDPair(posRDD, negRDD) => {
+      num_pos = posRDD.count()
+      num_neg = negRDD.count()
+      ExtendedRDDPair(num_pos > num_neg, posRDD, negRDD)
+    }
   }
+    
+  private def doRUS[T]: ExtendedRDDPair[T] => RDD[T] = _ match {
+    case ExtendedRDDPair(true, posRDD, negRDD) => negRDD.union(posRDD.sample(false, num_neg.toFloat/num_pos))
+    case ExtendedRDDPair(false, posRDD, negRDD) => posRDD.union(negRDD.sample(false, num_pos.toFloat/num_neg))
+  }
+  
+  private def apply[T]: RDDWithClasses[T] => RDD[T] = input => 
+    (CommonUtils.filterByPosNeg andThen isPosCountGreaterThanNegCount[T] andThen doRUS[T])(input)
+  
+    
+  def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String): RDD[T] = 
+    apply[T](RDDWithClasses(sourceDataset, minclass, majclass))
 
 }
 

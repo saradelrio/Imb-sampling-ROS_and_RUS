@@ -7,6 +7,9 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
 import es.ugr.decsai.spark.sampling.common.CommonUtils
+import es.ugr.decsai.spark.sampling.common.ExtendedRDDPair
+import es.ugr.decsai.spark.sampling.common.RDDPair
+import es.ugr.decsai.spark.sampling.common.RDDWithClasses
 
 /**
  * @author SARA
@@ -89,18 +92,31 @@ object runROS {
   
   }
   
+  
+  private def isPosCountGreaterThanNegCount[T]: RDDPair[T] => ExtendedRDDPair[T] = _ match {
+    case RDDPair(posRDD, negRDD) => {
+      num_pos = posRDD.count()
+      num_neg = negRDD.count()
+      ExtendedRDDPair(num_pos > num_neg, posRDD, negRDD)
+    }
+  }
+    
+  private def doROS[T]: ExtendedRDDPair[T] => RDD[T] = _ match {
+    case ExtendedRDDPair(true, posRDD, negRDD) => posRDD.union(negRDD.sample(true, num_pos*overRate*0.01/num_neg))
+    case ExtendedRDDPair(false, posRDD, negRDD) => negRDD.union(posRDD.sample(true, num_neg*overRate*0.01/num_pos))
+  }
+  
+  private def apply[T]: RDDWithClasses[T] => RDD[T] = input => 
+    (CommonUtils.filterByPosNeg andThen isPosCountGreaterThanNegCount[T] andThen doROS[T])(input)
+  
+  
+  var overRate: Int = 0;
+  
   def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String, overRate: Int): RDD[T] = {
+        
+    this.overRate = overRate;
     
-    val train_positive = sourceDataset.filter(CommonUtils.checkIfClass(_,minclass))
-    val train_negative = sourceDataset.filter(CommonUtils.checkIfClass(_,majclass))
-    
-    var num_pos = train_positive.count()
-    var num_neg = train_negative.count()
-    
-    num_pos > num_neg match {
-      case true => train_positive.union(train_negative.sample(true, num_pos*overRate*0.01/num_neg))
-      case false => train_negative.union(train_positive.sample(true, num_neg*overRate*0.01/num_pos))
-    }  
+    apply[T](RDDWithClasses(sourceDataset, minclass, majclass))
     
   }
 
