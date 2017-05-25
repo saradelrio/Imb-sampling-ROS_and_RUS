@@ -14,7 +14,7 @@ object CommonUtils {
   
   def checkIfClass(instance: Any, classValue: String): Boolean = instance match {
     case typedInstance:String => return (typedInstance.split(",").last.compareToIgnoreCase(classValue) == 0)
-    case typedInstance:LabeledPoint => return (typedInstance.label ==  classValue)
+    case typedInstance:LabeledPoint => return (typedInstance.label ==  classValue.toDouble)
     case _ => throw new NotImplementedException
   }
   
