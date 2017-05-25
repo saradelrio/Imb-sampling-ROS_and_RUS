@@ -16,6 +16,7 @@ import java.io.PrintWriter
 import org.apache.spark.rdd.MapPartitionsRDD
 import org.apache.spark.rdd.RDD
 import scala.util.Random
+import org.apache.commons.lang.NotImplementedException
 
 /**
  * @author SARA
@@ -98,55 +99,26 @@ object runROS {
   
   }
   
-  def apply(trainRaw: RDD[String], minclass: String, majclass: String, overRate: Int) = {    
-    
-    var oversample: RDD[String]= null
-    var fraction = 0.0 
-    
-    val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
-    val train_negative = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(majclass) == 0)
-    
-    num_neg = train_negative.count()
-    num_pos = train_positive.count()
-      
-    if (num_pos > num_neg){
-      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
-      println("fraction:" + fraction)
-      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
-      
-    }else{
-      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
-      println("fraction:" + fraction)
-      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
-    }
-    
-    oversample
+  def checkIfClass(instance: Any, classValue: String): Boolean = instance match {
+    case typedInstance:String => return (typedInstance.split(",").last.compareToIgnoreCase(classValue) == 0)
+    case typedInstance:LabeledPoint => return (typedInstance.label ==  classValue)
+    case _ => throw new NotImplementedException
   }
   
-  def apply(trainRaw: RDD[LabeledPoint], minclass: Double, majclass: Double, overRate: Int): RDD[LabeledPoint]= {
-    var oversample: RDD[LabeledPoint]= null
-    var fraction = 0.0 
+  def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String, overRate: Int): RDD[T] = {
     
-    val train_positive = trainRaw.filter(line => line.label ==  minclass)
-    val train_negative = trainRaw.filter(line => line.label ==  majclass)
+    val train_positive = sourceDataset.filter(checkIfClass(_,minclass))
+    val train_negative = sourceDataset.filter(checkIfClass(_,majclass))
     
-    num_neg = train_negative.count()
-    num_pos = train_positive.count()
-      
-    if (num_pos > num_neg){
-      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
-      println("fraction:" + fraction)
-      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
-      
-    }else{
-      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
-      println("fraction:" + fraction)
-      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
-    }
+    var num_pos = train_positive.count()
+    var num_neg = train_negative.count()
     
-    oversample
-   } 
-
+    num_pos > num_neg match {
+      case true => train_positive.union(train_negative.sample(true, num_pos*overRate*0.01/num_neg))
+      case false => train_negative.union(train_positive.sample(true, num_neg*overRate*0.01/num_pos))
+    }  
+    
+  }
 
 }
 
