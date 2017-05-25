@@ -6,6 +6,7 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
+import es.ugr.decsai.spark.sampling.common.CommonUtils
 
 /**
  * @author SARA
@@ -82,56 +83,21 @@ object runRUS {
   
   }
   
-  def apply(trainRaw: RDD[String], minclass: String, majclass: String) = {
-    
-    var undersample: RDD[String]= null
-    var fraction = 0.0 
-    
-    val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
-    val train_negative = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(majclass) == 0)
-    
-    val num_neg = train_negative.count()
-    val num_pos = train_positive.count()
-      
-    if (num_pos > num_neg){
-      fraction = num_neg.toFloat/num_pos
-      println("fraction:" + fraction)
-      undersample = train_negative.union(train_positive.sample(false, fraction, 1234))
-      
-    }else{
-      fraction = num_pos.toFloat/num_neg
-      println("fraction:" + fraction)
-      undersample = train_positive.union(train_negative.sample(false, fraction, 1234))
-    }
-    
-    undersample
-  }
   
-  def apply(trainRaw: RDD[LabeledPoint], minclass: Double, majclass: Double): RDD[LabeledPoint]= {
+  def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String): RDD[T] = {
     
-    var undersample: RDD[LabeledPoint]= null
-    var fraction = 0.0 
+    val train_positive = sourceDataset.filter(CommonUtils.checkIfClass(_,minclass))
+    val train_negative = sourceDataset.filter(CommonUtils.checkIfClass(_,majclass))
     
-    val train_positive = trainRaw.filter(line => line.label ==  minclass)
-    val train_negative = trainRaw.filter(line => line.label ==  majclass)
+    var num_pos = train_positive.count()
+    var num_neg = train_negative.count()
     
-    val num_neg = train_negative.count()
-    val num_pos = train_positive.count()
-      
-    if (num_pos > num_neg){
-      fraction = num_neg.toFloat/num_pos
-      println("fraction:" + fraction)
-      undersample = train_negative.union(train_positive.sample(false, fraction, 1234))
-      
-    }else{
-      fraction = num_pos.toFloat/num_neg
-      println("fraction:" + fraction)
-      undersample = train_positive.union(train_negative.sample(false, fraction, 1234))
-    }
+    num_pos > num_neg match {
+      case true => train_negative.union(train_positive.sample(false, num_neg.toFloat/num_pos))
+      case false => train_positive.union(train_negative.sample(false, num_pos.toFloat/num_neg))
+    }  
     
-    undersample
   }
-
 
 }
 

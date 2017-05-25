@@ -6,6 +6,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
+import es.ugr.decsai.spark.sampling.common.CommonUtils
 
 /**
  * @author SARA
@@ -88,16 +89,10 @@ object runROS {
   
   }
   
-  def checkIfClass(instance: Any, classValue: String): Boolean = instance match {
-    case typedInstance:String => return (typedInstance.split(",").last.compareToIgnoreCase(classValue) == 0)
-    case typedInstance:LabeledPoint => return (typedInstance.label ==  classValue)
-    case _ => throw new NotImplementedException
-  }
-  
   def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String, overRate: Int): RDD[T] = {
     
-    val train_positive = sourceDataset.filter(checkIfClass(_,minclass))
-    val train_negative = sourceDataset.filter(checkIfClass(_,majclass))
+    val train_positive = sourceDataset.filter(CommonUtils.checkIfClass(_,minclass))
+    val train_negative = sourceDataset.filter(CommonUtils.checkIfClass(_,majclass))
     
     var num_pos = train_positive.count()
     var num_neg = train_negative.count()
