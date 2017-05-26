@@ -41,7 +41,7 @@ M###################@%=           =+@MH%
 /*
  * This tests depends heavily on a random generator, causing some tests to fail sometimes
  */
-class StackSpec extends FlatSpec {
+class Tests extends FlatSpec {
 
   val sc = new SparkContext(new SparkConf().setMaster("local[*]").setAppName("Imb-sampling test"))
   val dataset = sc.parallelize(1 to 10).map { x => ""+x+","+(if(x>6) "min" else "maj") }
