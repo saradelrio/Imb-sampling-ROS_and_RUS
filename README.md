@@ -1,6 +1,7 @@
-### Imb-sampling-ROS_and_RUS
+# Imbalanced sampling: ROS and RUS
 Spark implementations of two data sampling methods (random oversampling and random undersampling) for imbalanced data.
 
+---
 
 ## Example (Undersampling-Standalone):
 
@@ -33,53 +34,51 @@ spark-submit --class org.apache.spark.mllib.sampling.runROS Imb-sampling-1.0.jar
 
 ## Examples (library):
 
+The following examples only work for RDD[T], where `T` is one of:
+
+* String
+* kNN_IS's utils.keel.KeelParser
+
+In another case, a NotImplementedException will be thrown.
+
+
 ```Scala
-import srio.org.apache.spark.mllib.sampling._
-```
-```Scala
-// Undersampling RDD[LabeledPoint]
-
-val LP:RDD[LabeledPoint]
-val minoritaryClassValue:Double
-val majoritaryClassValue:Double
-
-val Result:RDD[LabeledPoint]  = runRUS.apply(LP, minoritaryClassValue, majoritaryClassValue)
-
+import es.ugr.decsai.spark.sampling._
 ```
 
+#### Undersampling
+
+`runRUS` balances instances by class, removing majority class instances.
+
+
 ```Scala
-// Oversampling RDD[LabeledPoint]
+// Loaded RDD:
+val dataset:RDD[T]
 
-val LP:RDD[LabeledPoint]
-val minoritaryClassValue:Double
-val majoritaryClassValue:Double
-val percentage:Int
+// Class names
+val minoritaryClassValue:String = "min"
+val majoritaryClassValue:String = "maj"
 
-val Result:RDD[LabeledPoint]  = runROS.apply(LP, minoritaryClassValue, majoritaryClassValue,percentage)
+val result:RDD[T]  = runRUS(dataset, minoritaryClassValue, majoritaryClassValue)
 ```
 
+#### Oversampling
 
-
-```Scala
-// Undersampling RDD[String]
-
-val Str:RDD[String]
-val minoritaryClassValue:String
-val majoritaryClassValue:String
-
-val Result:RDD[String]  = runRUS.apply(Str, minoritaryClassValue, majoritaryClassValue)
-
-```
+`runROS` uses random oversampling to set the number of minority class instances equal to the `percentage`% of the majority class instances 
 
 ```Scala
-// Oversampling RDD[String]
 
-val Str:RDD[String]
-val minoritaryClassValue:String
-val majoritaryClassValue:String
-val percentage:Int
+//Loaded RDD:
+val dataset:RDD[T]
 
-val Result:RDD[String]  = runROS.apply(Str, minoritaryClassValue, majoritaryClassValue,percentage)
+// Classes names
+val minoritaryClassValue:String = "min"
+val majoritaryClassValue:String = "maj"
+
+// Oversampling rate (percentage of minority class instances over majority class ones after ROS)
+val percentage:Int = 200
+
+val result:RDD[T]  = runROS(dataset, minoritaryClassValue, majoritaryClassValue,percentage)
 ```
 
 ## Credits
@@ -87,3 +86,7 @@ val Result:RDD[String]  = runROS.apply(Str, minoritaryClassValue, majoritaryClas
 Developed by: Sara del Río García (srio@decsai.ugr.es)
 
 Maintained by: Sergio Ramírez (sramirez@decsai.ugr.es) / @sramirez
+
+Conversion to library & functional improvements by: Daniel Trujillo Viedma (dtviedma@ujaen.es / [@gDanix](https://github.com/gDanix/))
+
+KeelParser's LabeledPoint adaptation by: Mauricio Orellana Grande (m.orellana.grande@gmail.com / [@smog2010](https://github.com/smog2010/))
