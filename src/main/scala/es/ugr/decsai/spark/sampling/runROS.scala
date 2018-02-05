@@ -1,26 +1,24 @@
-package org.apache.spark.mllib.sampling
+package es.ugr.decsai.spark.sampling
 
+import org.apache.commons.lang.NotImplementedException
 import org.apache.log4j.Logger
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
-import org.apache.spark.broadcast.Broadcast
-import scala.collection.mutable.ListBuffer
-import java.io.IOException
-import java.io.File
+import org.apache.spark.SparkContext
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.linalg.Vectors
-import java.util.ArrayList
-import com.typesafe.config.ConfigFactory
-import java.io.PrintWriter
-import org.apache.spark.rdd.MapPartitionsRDD
 import org.apache.spark.rdd.RDD
-import scala.util.Random
+import es.ugr.decsai.spark.sampling.common.CommonUtils
+import es.ugr.decsai.spark.sampling.common.ExtendedRDDPair
+import es.ugr.decsai.spark.sampling.common.RDDPair
+import es.ugr.decsai.spark.sampling.common.RDDWithClasses
 
 /**
  * @author SARA
  */
 object runROS {
+  
+  var num_pos: Long = 0;
+  var num_neg: Long = 0;
+  
   def main(arg: Array[String]) {
 
     var logger = Logger.getLogger(this.getClass())
@@ -74,25 +72,7 @@ object runROS {
     
     val trainRaw = sc.textFile(pathTrain: String, numPartition).cache    
     
-    var oversample: RDD[String]= null
-    var fraction = 0.0 
-    
-    val train_positive = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(minclass) == 0)
-    val train_negative = trainRaw.filter(line => line.split(",").last.compareToIgnoreCase(majclass) == 0)
-    
-    val num_neg = train_negative.count()
-    val num_pos = train_positive.count()
-      
-    if (num_pos > num_neg){
-      fraction = (num_pos*(overRate.toFloat/100)).toFloat/num_neg
-      println("fraction:" + fraction)
-      oversample = train_positive.union(train_negative.sample(true, fraction, 1234))
-      
-    }else{
-      fraction = (num_neg*(overRate.toFloat/100)).toFloat/num_pos
-      println("fraction:" + fraction)
-      oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
-    }
+    val oversample = runROS(trainRaw, minclass, majclass, overRate)
     
     oversample.repartition(numRePartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
     
@@ -110,6 +90,34 @@ object runROS {
     
     println("Number of final instances:" + oversample.count())
   
+  }
+  
+  
+  private def isPosCountGreaterThanNegCount[T]: RDDPair[T] => ExtendedRDDPair[T] = _ match {
+    case RDDPair(posRDD, negRDD) => {
+      num_pos = posRDD.count()
+      num_neg = negRDD.count()
+      ExtendedRDDPair(num_pos > num_neg, posRDD, negRDD)
+    }
+  }
+    
+  private def doROS[T]: ExtendedRDDPair[T] => RDD[T] = _ match {
+    case ExtendedRDDPair(true, posRDD, negRDD) => posRDD.union(negRDD.sample(true, num_pos*overRate*0.01/num_neg))
+    case ExtendedRDDPair(false, posRDD, negRDD) => negRDD.union(posRDD.sample(true, num_neg*overRate*0.01/num_pos))
+  }
+  
+  private def apply[T]: RDDWithClasses[T] => RDD[T] = input => 
+    (CommonUtils.filterByPosNeg andThen isPosCountGreaterThanNegCount[T] andThen doROS[T])(input)
+  
+  
+  var overRate: Int = 0;
+  
+  def apply[T](sourceDataset: RDD[T], minclass: String, majclass: String, overRate: Int): RDD[T] = {
+        
+    this.overRate = overRate;
+    
+    apply[T](RDDWithClasses(sourceDataset, minclass, majclass))
+    
   }
 
 }
