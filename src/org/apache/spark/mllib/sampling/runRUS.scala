@@ -88,7 +88,7 @@ object runRUS {
       undersample = train_positive.union(train_negative.sample(false, fraction, 1234))
     }
     
-    undersample.repartition(numPartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
+    undersample.repartition(numPartition).repartition(1).saveAsTextFile(pathOutput)
     
     val timeEnd = System.nanoTime
     
