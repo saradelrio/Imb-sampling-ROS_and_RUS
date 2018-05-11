@@ -94,7 +94,7 @@ object runROS {
       oversample = train_negative.union(train_positive.sample(true, fraction, 1234))
     }
     
-    oversample.repartition(numRePartition).coalesce(1, shuffle = true).saveAsTextFile(pathOutput)
+    oversample.repartition(numRePartition).repartition(1).saveAsTextFile(pathOutput)
     
     val timeEnd = System.nanoTime
     
