@@ -29,7 +29,7 @@ Parameters
 >	"pathOutput"
 
 
-spark-submit --class org.apache.spark.mllib.sampling.runROS Imb-sampling-1.0.jar hdfs://hadoop-master/datasets/data.header hdfs://hadoop-master/datasets/train.data 100 250 0 1 2.0 hdfs://hadoop-master/datasets/train-under.data
+spark-submit --class org.apache.spark.mllib.sampling.runROS Imb-sampling-1.0.jar hdfs://hadoop-master/datasets/data.header hdfs://hadoop-master/datasets/train.data 100 250 0 1 2 hdfs://hadoop-master/datasets/train-under.data
 
 ## Credits
 
